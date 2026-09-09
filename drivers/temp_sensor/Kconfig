@@ -1,0 +1,6 @@
+config CUSTOM_TEMP_SENSOR
+    bool "Custom Temperature Sensor Driver"
+    default n
+    depends on GPIO
+    help
+      Enable the custom temperature sensor driver

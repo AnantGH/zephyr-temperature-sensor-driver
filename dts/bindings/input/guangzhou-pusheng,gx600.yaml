@@ -1,0 +1,11 @@
+description: Guangzhou Pu Sheng GX-600 NTC Thermistor assembly
+
+compatible: "guangzhou-pusheng,gx600"
+
+include: sensor-device.yaml
+
+properties:
+  io-channels:
+    type: phandle-array
+    required: true
+    description: ADC channel connected to the analog temperature sensor signal pin.
