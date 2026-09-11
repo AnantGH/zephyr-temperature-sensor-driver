@@ -153,6 +153,9 @@ static int gx600_channel_get(const struct device *dev, enum sensor_channel chan,
        val1 = Integer Part, val2 = Fractional part in micro-degrees (1/1000000) */
     val->val1 = (int32_t)data->calculated_temp;
     val->val2 = (int32_t)((data->calculated_temp - val->val1) * 1000000);
+    if (val->val2 < 0) {
+        val->val2 = -val->val2;
+    }   
 
     k_mutex_unlock(&data->lock);
     return 0;
