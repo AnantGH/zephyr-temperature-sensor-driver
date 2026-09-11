@@ -26,6 +26,36 @@ struct mydevice_data {
 };
 
 //Initialization function called at the time of boot
+// static int temp_sensor_init(const struct device *dev)
+// {
+//     if (dev == NULL) {
+//         LOG_ERR("Device structure is NULL");
+//         return -EINVAL;
+//     }
+
+//     const struct mydevice_config *config = dev->config;
+//     struct mydevice_data *data = dev->data;
+
+//     // this is made simply to manage the telemetry data's flow during the normal functioning of the whatever device uses this driver
+//     k_mutex_init(&data->lock);
+    
+//     /* Clear out our baseline data variable */
+//     data->latest_value = 0;
+//     data->calculated_temp = 0.0;
+
+//     /* In a real I2C driver, you would use the 'config->i2c_address' here to check if the chip is alive: */
+    
+//     if (!device_is_ready(config->adc_channel.dev)) {
+//         LOG_ERR("Initialization failed for %s: Bus controller hardware is NOT ready!", dev->name);
+//         return -ENODEV;
+//     }
+    
+//     LOG_INF("Temperature sensor %s successfully initialized!", dev->name);
+
+//     /* 4. Return 0 to tell Zephyr this device successfully initialized */
+//     return 0; 
+// }
+
 static int temp_sensor_init(const struct device *dev)
 {
     if (dev == NULL) {
@@ -36,24 +66,26 @@ static int temp_sensor_init(const struct device *dev)
     const struct mydevice_config *config = dev->config;
     struct mydevice_data *data = dev->data;
 
-    // this is made simply to manage the telemetry data's flow during the normal functioning of the whatever device uses this driver
     k_mutex_init(&data->lock);
-    
-    /* Clear out our baseline data variable */
     data->latest_value = 0;
     data->calculated_temp = 0.0;
 
-    /* In a real I2C driver, you would use the 'config->i2c_address' here to check if the chip is alive: */
-    
     if (!device_is_ready(config->adc_channel.dev)) {
         LOG_ERR("Initialization failed for %s: Bus controller hardware is NOT ready!", dev->name);
         return -ENODEV;
     }
-    
-    LOG_INF("Temperature sensor %s successfully initialized!", dev->name);
 
-    /* 4. Return 0 to tell Zephyr this device successfully initialized */
-    return 0; 
+    /* Configure the ADC channel using the settings from devicetree
+       (gain, reference, acquisition time) — without this, the channel's
+       reference type is never actually applied by the ADC driver. */
+    int ret = adc_channel_setup_dt(&config->adc_channel);
+    if (ret != 0) {
+        LOG_ERR("Could not setup ADC channel (%d)", ret);
+        return ret;
+    }
+
+    LOG_INF("Temperature sensor %s successfully initialized!", dev->name);
+    return 0;
 }
 
 // API functions to acctually fetch the temperature value from the sensor and return it to the application
