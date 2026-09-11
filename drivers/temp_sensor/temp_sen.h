@@ -1,8 +1,9 @@
 #ifndef ZEPHYR_DRIVERS_TEMP_SENS_H_
 #define ZEPHYR_DRIVERS_TEMP_SENS_H_
 
-#include <zephyr/device.h>
 #include <stdbool.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
 
 #ifdef __cplusplus
 extern "C" {
