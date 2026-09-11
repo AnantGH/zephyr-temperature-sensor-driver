@@ -1,26 +1,38 @@
-#define DT_DRV_COMPAT custom_temp_sensor
+// #define DT_DRV_COMPAT custom_temp_sensor
+#define DT_DRV_COMPAT guangzhou_pusheng_gx600
 
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/adc.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/drivers/adc/adc_emul.h>
 #include <math.h>
 #include "temp_sen.h"
 
+LOG_MODULE_REGISTER(custom_temp_sensor, CONFIG_LOG_DEFAULT_LEVEL);
+
 /* Config: Read-only, stored in Flash (e.g., pin numbers, I2C addresses) */
 struct mydevice_config {
-    uint8_t i2c_address;
-    uint32_t sampling_rate;
+    struct adc_dt_spec adc_channel;
 };
 
 /* Data: Read/Write, stored in RAM (e.g., dynamic states, raw buffers, mutexes) */
 struct mydevice_data {
     uint16_t latest_value;
+    double calculated_temp; 
     struct k_mutex lock;
 };
 
 //Initialization function called at the time of boot
 static int temp_sensor_init(const struct device *dev)
 {
+    if (dev == NULL) {
+        LOG_ERR("Device structure is NULL");
+        return -EINVAL;
+    }
+
     const struct mydevice_config *config = dev->config;
     struct mydevice_data *data = dev->data;
 
@@ -29,10 +41,11 @@ static int temp_sensor_init(const struct device *dev)
     
     /* Clear out our baseline data variable */
     data->latest_value = 0;
+    data->calculated_temp = 0.0;
 
     /* In a real I2C driver, you would use the 'config->i2c_address' here to check if the chip is alive: */
     
-    if (!device_is_ready(config->bus)) {
+    if (!device_is_ready(config->adc_channel.dev)) {
         LOG_ERR("Initialization failed for %s: Bus controller hardware is NOT ready!", dev->name);
         return -ENODEV;
     }
@@ -122,12 +135,11 @@ static const struct sensor_driver_api gx600_api_funcs = {
     static struct mydevice_data mydevice_data_##inst;                                   \
                                                                                         \
     static const struct mydevice_config mydevice_config_##inst = {                      \
-        .i2c_address = DT_INST_REG_ADDR(inst),                                          \
-        .sampling_rate = DT_INST_PROP(inst, sampling_rate),                             \
+        .adc_channel = ADC_DT_SPEC_INST_GET(inst),                                      \
     };                                                                                  \
                                                                                         \
     DEVICE_DT_INST_DEFINE(inst,                                                         \
-                          mydevice_init,             /* The init function */            \
+                          temp_sensor_init,             /* The init function */         \
                           NULL,                                                         \
                           &mydevice_data_##inst,                                        \
                           &mydevice_config_##inst,                                      \
@@ -136,8 +148,3 @@ static const struct sensor_driver_api gx600_api_funcs = {
                           &gx600_api_funcs);
 
 DT_INST_FOREACH_STATUS_OKAY(MYDEVICE_INIT)
-
-
-
-
-
